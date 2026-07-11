@@ -14,16 +14,39 @@ pnpm + turbo workspace, same shape as the other Anakloud repos:
 
 ## Setup
 
+### 1. Install Doppler CLI
+Install the Doppler CLI globally on your machine:
+
+- **macOS (via Homebrew):**
+  ```sh
+  brew install dopplerhq/cli/doppler
+  ```
+- **Windows (via Winget):**
+  ```sh
+  winget install doppler.doppler
+  ```
+- **Linux (via curl):**
+  ```sh
+  (curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh || wget -t 3 -qO- https://cli.doppler.com/install.sh) | sh
+  ```
+
+### 2. Login & Setup Doppler
+Authenticate your CLI and bind the local workspace:
 ```sh
 pnpm install
 
-# server env
-cp apps/anakloud-core-server/.env.example apps/anakloud-core-server/.env
-# fill in DATABASE_URL; SERVICE_KEYS must include {"key":"dev-pedmd","service":"pedmd"}
+# Authenticate with Doppler
+doppler login
 
+# Setup the project (automatically detects config from doppler.yaml)
+doppler setup
+```
+
+### 3. Database & Development Servers
+```sh
 pnpm --filter anakloud-core-server db:generate
-pnpm --filter anakloud-core-server db:run-migration
-pnpm --filter anakloud-core-server seed   # prints sample childIds
+pnpm --filter anakloud-core-server db:migrate   # Automatically runs via doppler run
+pnpm --filter anakloud-core-server db:push      # Automatically runs via doppler run
 
 pnpm dev:server   # http://localhost:3000/graphql
 pnpm dev:app      # Expo web on http://localhost:8081 — paste a seeded childId

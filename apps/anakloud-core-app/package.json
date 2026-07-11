@@ -4,10 +4,10 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "start": "dotenv -e ../../.env -- expo start",
-    "dev": "dotenv -e ../../.env -- expo start --web",
-    "web": "dotenv -e ../../.env -- expo start --web",
-    "build:web": "dotenv -e ../../.env -- expo export -p web",
+    "start": "doppler run -- expo start",
+    "dev": "doppler run -- expo start --web",
+    "web": "doppler run -- expo start --web",
+    "build:web": "doppler run -- expo export -p web",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

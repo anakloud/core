@@ -2,16 +2,16 @@
   "name": "anakloud-core-server",
   "module": "src/index.ts",
   "scripts": {
-    "dev": "dotenv -e ../../.env -- bun run --hot src/index.ts",
-    "start": "dotenv -e ../../.env -- bun run src/index.ts",
+    "dev": "doppler run -- bun run --hot src/index.ts",
+    "start": "doppler run -- bun run src/index.ts",
     "build": "bun build src/index.ts --target=bun --outdir=dist",
-    "start:dist": "dotenv -e ../../.env -- bun run dist/index.js",
+    "start:dist": "doppler run -- bun run dist/index.js",
     "typecheck": "tsc --noEmit",
     "db:generate": "bunx drizzle-kit generate",
-    "db:migrate": "dotenv -e ../../.env -- bunx drizzle-kit migrate",
-    "db:push": "dotenv -e ../../.env -- bunx drizzle-kit push",
-    "db:studio": "dotenv -e ../../.env -- bunx drizzle-kit studio",
-    "db:run-migration": "dotenv -e ../../.env -- bun run scripts/migrate.ts"
+    "db:migrate": "doppler run -- bunx drizzle-kit migrate",
+    "db:push": "doppler run -- bunx drizzle-kit push",
+    "db:studio": "doppler run -- bunx drizzle-kit studio",
+    "db:run-migration": "doppler run -- bun run scripts/migrate.ts"
   },
   "type": "module",
   "private": true,

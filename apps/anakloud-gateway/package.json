@@ -2,8 +2,8 @@
   "name": "anakloud-gateway",
   "module": "src/index.ts",
   "scripts": {
-    "dev": "dotenv -e ../../.env -- bun run --hot src/index.ts",
-    "start": "dotenv -e ../../.env -- bun run src/index.ts",
+    "dev": "doppler run -- bun run --hot src/index.ts",
+    "start": "doppler run -- bun run src/index.ts",
     "typecheck": "tsc --noEmit"
   },
   "type": "module",
