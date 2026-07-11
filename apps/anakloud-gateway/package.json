@@ -1,0 +1,20 @@
+{
+  "name": "anakloud-gateway",
+  "module": "src/index.ts",
+  "scripts": {
+    "dev": "dotenv -e ../../.env -- bun run --hot src/index.ts",
+    "start": "dotenv -e ../../.env -- bun run src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@apollo/gateway": "^2.9.3",
+    "@apollo/server": "^4.11.0",
+    "graphql": "^16.14.0"
+  }
+}

@@ -1,0 +1,9 @@
+node_modules
+.env
+.env.local
+*.log
+.DS_Store
+.expo/
+.turbo/
+dist/
+expo-env.d.ts

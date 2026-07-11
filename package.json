@@ -1,0 +1,22 @@
+{
+  "name": "@anakloud-core/monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "dev:server": "pnpm --filter anakloud-core-server dev",
+    "dev:gateway": "pnpm --filter anakloud-gateway dev",
+    "dev:app": "pnpm --filter @anakloud/anakloud-core-app web",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^11.0.0",
+    "turbo": "^2.8.14"
+  },
+  "packageManager": "pnpm@10.17.1"
+}
