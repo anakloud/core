@@ -1,4 +1,0 @@
-setup:
-  - project: anakloud-core
-    config: dev
-    path: .
