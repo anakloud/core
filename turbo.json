@@ -1,5 +1,13 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": [
+    "MONGO_URI",
+    "PORT",
+    "EXPO_PUBLIC_API_URL",
+    "EXPO_PUBLIC_SERVICE_KEY",
+    "TRUSTED_ORIGINS",
+    "NODE_ENV"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"]

@@ -1,44 +1,41 @@
-name: Deploy Anakloud Core Server
+name: Deploy Core Server
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - "apps/anakloud-core-server/**"
+      - "apps/core-server/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "Dockerfile"
+      - ".github/workflows/deploy-server.yml"
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          bun-version: latest
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build server
-        run: cd apps/anakloud-core-server && bun run build
-
-      - name: Copy dist to server
-        uses: appleboy/scp-action@v0.1.7
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
         with:
-          host: ${{ vars.HOST }}
-          username: ec2-user
-          key: ${{ secrets.SSH_KEY }}
-          source: apps/anakloud-core-server/dist/index.js
-          target: /home/ec2-user/anakloud-core-server/dist
-          strip_components: 3
+          context: .
+          push: true
+          tags: ${{ vars.DOCKER_USERNAME }}/core-server:latest
 
-      - name: Restart server
-        uses: appleboy/ssh-action@v1
+      - name: Dokploy Deployment Trigger
+        uses: benbristow/dokploy-deploy-action@0.2.2
         with:
-          host: ${{ vars.HOST }}
-          username: ec2-user
-          key: ${{ secrets.SSH_KEY }}
-          script: sudo systemctl restart anakloud-core-server
+          api_token: ${{ secrets.DOKPLOY_AUTH_TOKEN }}
+          application_id: ${{ vars.DOKPLOY_APPLICATION_ID }}
+          dokploy_url: ${{ vars.DOKPLOY_URL }}
+          service_type: application

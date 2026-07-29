@@ -1,5 +1,5 @@
 {
-  "name": "@anakloud-core/monorepo",
+  "name": "core-monorepo",
   "version": "0.1.0",
   "private": true,
   "workspaces": [
@@ -8,10 +8,8 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
-    "dev:server": "pnpm --filter anakloud-core-server dev",
-    "dev:gateway": "pnpm --filter anakloud-gateway dev",
-    "dev:app": "pnpm --filter @anakloud/anakloud-core-app web",
+    "dev": "dotenv -e apps/core-server/.env -- turbo run dev",
+    "dev:server": "pnpm --filter core-server dev",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {

@@ -1,7 +1,7 @@
-# PRD: Anakloud Core
+# PRD: Core
 
 ## 1. Overview
-Anakloud Core is the centralized data hub for the Anakloud ecosystem. It owns **session and evaluation records**, referencing (not duplicating) child profile data from ParentUp. It serves as the system of record that TeachDay, PedConnect, and PedMD read from and TeachDay writes to.
+Core is the centralized data hub for the Anakloud ecosystem. It owns **session and evaluation records**, referencing (not duplicating) child profile data from ParentUp. It serves as the system of record that TeachDay, PedConnect, and PedMD read from and TeachDay writes to.
 
 ## 2. Goals
 - Single source of truth for sessions/evaluations across all centres and teachers.
@@ -16,7 +16,7 @@ Anakloud Core is the centralized data hub for the Anakloud ecosystem. It owns **
 
 ## 4. Ecosystem Context
 
-| App | Relationship to Anakloud Core |
+| App | Relationship to Core |
 |---|---|
 | ParentUp | Source of truth for child profiles. Parents read session **reports** (filtered view) from Core. |
 | TeachDay | Writes sessions/evaluations to Core. Reads centre/child context as needed. |
@@ -42,7 +42,7 @@ Anakloud Core is the centralized data hub for the Anakloud ecosystem. It owns **
 ## 6. Architecture
 
 - **Stack**: React Native (n/a — backend only), Hono.js, GraphQL, Neon (Postgres) — consistent with existing 4 apps.
-- **Pattern**: GraphQL federation/subgraph. Anakloud Core exposes its own subgraph; resolves `childId` via a federated reference to ParentUp's subgraph rather than storing profile fields.
+- **Pattern**: GraphQL federation/subgraph. Core exposes its own subgraph; resolves `childId` via a federated reference to ParentUp's subgraph rather than storing profile fields.
 - **DB**: Single shared Neon Postgres instance (not per-centre), since sessions follow the child across centres — avoids cross-database aggregation.
 
 ## 7. Access Control (draft — needs input)
