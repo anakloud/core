@@ -4,6 +4,30 @@ import { storageService } from "./storage.service.ts";
 
 @Controller("/storage")
 export class StorageController {
+  @Post("/object")
+  async uploadObject(c: Context) {
+    try {
+      const key = c.req.query("key");
+      const contentType = c.req.header("content-type");
+      if (!key || !contentType) {
+        return c.json({ error: "key and Content-Type are required" }, 400);
+      }
+
+      const body = new Uint8Array(await c.req.arrayBuffer());
+      if (body.byteLength === 0) {
+        return c.json({ error: "Upload body is required" }, 400);
+      }
+      if (body.byteLength > 10 * 1024 * 1024) {
+        return c.json({ error: "Upload exceeds the 10 MB limit" }, 413);
+      }
+
+      await storageService.uploadObject(key, contentType, body);
+      return c.json({ success: true, key });
+    } catch (err: any) {
+      return c.json({ success: false, error: err.message }, 400);
+    }
+  }
+
   @Post("/upload-url")
   async getUploadUrl(c: Context) {
     try {

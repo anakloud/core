@@ -49,6 +49,17 @@ export class StorageService {
     return getSignedUrl(client, command, { expiresIn });
   }
 
+  async uploadObject(key: string, contentType: string, body: Uint8Array): Promise<void> {
+    const client = this.getClient();
+    const command = new PutObjectCommand({
+      Bucket: this.getBucket(),
+      Key: key,
+      ContentType: contentType,
+      Body: body,
+    });
+    await client.send(command);
+  }
+
   async getPresignedDownloadUrl(key: string, expiresIn = 604800): Promise<string> {
     const client = this.getClient();
     const command = new GetObjectCommand({
