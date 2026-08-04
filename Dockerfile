@@ -27,6 +27,10 @@ RUN bun build src/index.ts --target=bun --outfile=dist/index.js
 FROM oven/bun:1.1-slim AS runner
 WORKDIR /app/apps/core-server
 
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends libreoffice-core libreoffice-writer poppler-utils fonts-dejavu-core \
+  && rm -rf /var/lib/apt/lists/*
+
 # Copy ONLY the static bundled index.js
 COPY --from=builder /app/apps/core-server/dist ./dist
 

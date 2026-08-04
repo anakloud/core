@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { Controller, Post, Delete } from "../lib/decorators.ts";
 import { storageService } from "./storage.service.ts";
+import { storagePreviewService } from "./storage-preview.service.ts";
 
 @Controller("/storage")
 export class StorageController {
@@ -85,6 +86,23 @@ export class StorageController {
     } catch (err: any) {
       const status = err?.name === "NotFound" || err?.$metadata?.httpStatusCode === 404 ? 404 : 400;
       return c.json({ success: false, error: err?.message ?? "Unable to inspect object" }, status);
+    }
+  }
+
+  @Post("/preview")
+  async createPreview(c: Context) {
+    try {
+      const body = await c.req.json();
+      const key = this.validateKey(body?.key);
+      const captureId = typeof body?.captureId === "string" ? body.captureId.trim() : "";
+      if (!captureId || !/^[a-zA-Z0-9_-]{1,128}$/.test(captureId)) {
+        return c.json({ success: false, error: "A valid captureId is required" }, 400);
+      }
+      const preview = await storagePreviewService.createPreview(key, captureId);
+      return c.json({ success: true, preview });
+    } catch (err: any) {
+      const status = err?.name === "NotFound" || err?.$metadata?.httpStatusCode === 404 ? 404 : 400;
+      return c.json({ success: false, error: err?.message ?? "Unable to create preview" }, status);
     }
   }
 

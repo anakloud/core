@@ -66,6 +66,14 @@ export class StorageService {
     await client.send(command);
   }
 
+  async downloadObject(key: string): Promise<Uint8Array> {
+    const result = await this.getClient().send(
+      new GetObjectCommand({ Bucket: this.getBucket(), Key: key }),
+    );
+    if (!result.Body) throw new Error("Storage object has no body");
+    return new Uint8Array(await result.Body.transformToByteArray());
+  }
+
   async getPresignedDownloadUrl(key: string, expiresIn = 604800): Promise<string> {
     const client = this.getClient();
     const command = new GetObjectCommand({
