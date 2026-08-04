@@ -1,4 +1,10 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export class StorageService {
@@ -67,6 +73,25 @@ export class StorageService {
       Key: key,
     });
     return getSignedUrl(client, command, { expiresIn: this.clampExpiry(expiresIn, 604800) });
+  }
+
+  async getObjectInfo(key: string): Promise<{
+    key: string;
+    contentType: string | null;
+    size: number;
+    etag: string | null;
+    lastModified: Date | null;
+  }> {
+    const result = await this.getClient().send(
+      new HeadObjectCommand({ Bucket: this.getBucket(), Key: key }),
+    );
+    return {
+      key,
+      contentType: result.ContentType ?? null,
+      size: Number(result.ContentLength ?? 0),
+      etag: result.ETag?.replace(/^"|"$/g, "") ?? null,
+      lastModified: result.LastModified ?? null,
+    };
   }
 
   private clampExpiry(value: unknown, fallback: number): number {

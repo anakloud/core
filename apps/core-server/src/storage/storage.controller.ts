@@ -75,6 +75,19 @@ export class StorageController {
     }
   }
 
+  @Post("/object-info")
+  async getObjectInfo(c: Context) {
+    try {
+      const { key: requestedKey } = await c.req.json();
+      const key = this.validateKey(requestedKey);
+      const info = await storageService.getObjectInfo(key);
+      return c.json({ success: true, ...info });
+    } catch (err: any) {
+      const status = err?.name === "NotFound" || err?.$metadata?.httpStatusCode === 404 ? 404 : 400;
+      return c.json({ success: false, error: err?.message ?? "Unable to inspect object" }, status);
+    }
+  }
+
   @Post("/sign-url")
   async signUrl(c: Context) {
     try {
