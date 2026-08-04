@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import type { Context, Hono } from "hono";
+import { timingSafeEqual } from "node:crypto";
 
 const ROUTES_KEY = Symbol("routes");
 const PREFIX_KEY = Symbol("prefix");
@@ -61,7 +62,15 @@ export function registerController(app: Hono, controllerClass: any) {
       if (!route.isPublic) {
         const expectedKey = process.env["API_KEY"] || process.env["CORE_API_KEY"];
         const apiKey = c.req.header("x-api-key") || c.req.header("x-service-key");
-        if (!expectedKey || !apiKey || apiKey !== expectedKey) {
+        const expectedBuffer = expectedKey ? Buffer.from(expectedKey) : null;
+        const providedBuffer = apiKey ? Buffer.from(apiKey) : null;
+        const authenticated = Boolean(
+          expectedBuffer
+          && providedBuffer
+          && expectedBuffer.length === providedBuffer.length
+          && timingSafeEqual(expectedBuffer, providedBuffer),
+        );
+        if (!authenticated) {
           return c.json({ error: "Unauthenticated: missing or invalid x-api-key header" }, 401);
         }
       }

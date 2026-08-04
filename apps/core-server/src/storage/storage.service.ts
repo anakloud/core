@@ -46,7 +46,7 @@ export class StorageService {
       Key: key,
       ContentType: contentType,
     });
-    return getSignedUrl(client, command, { expiresIn });
+    return getSignedUrl(client, command, { expiresIn: this.clampExpiry(expiresIn, 300) });
   }
 
   async uploadObject(key: string, contentType: string, body: Uint8Array): Promise<void> {
@@ -66,35 +66,68 @@ export class StorageService {
       Bucket: this.getBucket(),
       Key: key,
     });
-    return getSignedUrl(client, command, { expiresIn });
+    return getSignedUrl(client, command, { expiresIn: this.clampExpiry(expiresIn, 604800) });
   }
 
-  async signUrl(url: string | null | undefined): Promise<string | null> {
-    if (!url) return null;
-    if (url.includes("X-Amz-Signature=")) return url;
+  private clampExpiry(value: unknown, fallback: number): number {
+    const seconds = Number(value);
+    if (!Number.isFinite(seconds)) return fallback;
+    return Math.min(604800, Math.max(60, Math.floor(seconds)));
+  }
 
-    const r2PublicUrl = process.env["R2_PUBLIC_URL"] || "";
-    let key = "";
+  private validateReferenceKey(value: string): string {
+    const key = value.trim().replace(/^\/+/, "");
+    if (!key || key.length > 1024 || key.includes("..") || /[\u0000-\u001f]/.test(key)) {
+      throw new Error("Invalid storage reference");
+    }
+    return key;
+  }
 
-    if (r2PublicUrl && url.startsWith(r2PublicUrl)) {
-      key = url.slice(r2PublicUrl.length).replace(/^\/+/, "");
-    } else {
-      const match = url.match(
-        /(centers|branches|classes|students|therapists|users|files)\/[a-zA-Z0-9-]+\.[a-zA-Z0-9]+/,
-      );
-      if (match) {
-        key = match[0];
+  private keyFromUrl(value: string): string | null {
+    const parsed = new URL(value);
+    const accountId = process.env["R2_ACCOUNT_ID"];
+    const r2Host = accountId ? `${accountId}.r2.cloudflarestorage.com` : "";
+    const publicUrl = process.env["R2_PUBLIC_URL"];
+
+    if (publicUrl) {
+      const configured = new URL(publicUrl);
+      if (parsed.origin === configured.origin) {
+        const prefix = configured.pathname.replace(/\/+$/, "");
+        if (prefix && !parsed.pathname.startsWith(`${prefix}/`)) return null;
+        return this.validateReferenceKey(decodeURIComponent(parsed.pathname.slice(prefix.length)));
       }
     }
 
-    if (!key) return url;
-
-    try {
-      return await this.getPresignedDownloadUrl(key);
-    } catch (err) {
-      console.error("Error generating presigned GET URL for key:", key, err);
-      return url;
+    if (r2Host && parsed.host === r2Host) {
+      const bucketPrefix = `/${this.getBucket()}/`;
+      const pathname = decodeURIComponent(parsed.pathname);
+      return this.validateReferenceKey(
+        pathname.startsWith(bucketPrefix) ? pathname.slice(bucketPrefix.length) : pathname,
+      );
     }
+
+    return null;
+  }
+
+  async resolveReference(
+    reference: string | null | undefined,
+    expiresIn = 900,
+  ): Promise<{ key: string | null; url: string | null }> {
+    const value = String(reference || "").trim();
+    if (!value) return { key: null, url: null };
+
+    if (!/^https?:\/\//i.test(value)) {
+      const key = this.validateReferenceKey(value);
+      return { key, url: await this.getPresignedDownloadUrl(key, expiresIn) };
+    }
+
+    const key = this.keyFromUrl(value);
+    if (!key) return { key: null, url: value };
+    return { key, url: await this.getPresignedDownloadUrl(key, expiresIn) };
+  }
+
+  async signUrl(url: string | null | undefined): Promise<string | null> {
+    return (await this.resolveReference(url)).url;
   }
 
   async deleteObject(key: string): Promise<boolean> {

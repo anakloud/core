@@ -6,6 +6,7 @@
     "start": "bun run --preload ./src/patch.ts src/index.ts",
     "build": "bun build src/index.ts --target=bun --outdir=dist",
     "start:dist": "bun run --preload ./src/patch.ts dist/index.js",
+    "test": "bun test --preload ./src/patch.ts src",
     "typecheck": "tsc --noEmit"
   },
   "type": "module",

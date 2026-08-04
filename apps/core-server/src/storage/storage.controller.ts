@@ -4,6 +4,22 @@ import { storageService } from "./storage.service.ts";
 
 @Controller("/storage")
 export class StorageController {
+  private validateKey(key: unknown): string {
+    const value = typeof key === "string" ? key.trim().replace(/^\/+/, "") : "";
+    if (!value || value.length > 1024 || value.includes("..") || /[\u0000-\u001f]/.test(value)) {
+      throw new Error("Invalid storage key");
+    }
+    return value;
+  }
+
+  private validateContentType(contentType: unknown): string {
+    const value = typeof contentType === "string" ? contentType.trim().toLowerCase() : "";
+    if (!value || value.length > 255 || !/^[a-z0-9.+-]+\/[a-z0-9.+-]+$/.test(value)) {
+      throw new Error("Invalid content type");
+    }
+    return value;
+  }
+
   @Post("/object")
   async uploadObject(c: Context) {
     try {
@@ -31,7 +47,9 @@ export class StorageController {
   @Post("/upload-url")
   async getUploadUrl(c: Context) {
     try {
-      const { key, contentType, expiresIn } = await c.req.json();
+      const { key: requestedKey, contentType: requestedContentType, expiresIn } = await c.req.json();
+      const key = this.validateKey(requestedKey);
+      const contentType = this.validateContentType(requestedContentType);
       if (!key || !contentType) {
         return c.json({ error: "key and contentType are required" }, 400);
       }
@@ -45,7 +63,8 @@ export class StorageController {
   @Post("/download-url")
   async getDownloadUrl(c: Context) {
     try {
-      const { key, expiresIn } = await c.req.json();
+      const { key: requestedKey, expiresIn } = await c.req.json();
+      const key = this.validateKey(requestedKey);
       if (!key) {
         return c.json({ error: "key is required" }, 400);
       }
@@ -67,10 +86,22 @@ export class StorageController {
     }
   }
 
+  @Post("/resolve-url")
+  async resolveUrl(c: Context) {
+    try {
+      const { reference, expiresIn } = await c.req.json();
+      const resolved = await storageService.resolveReference(reference, expiresIn);
+      return c.json({ success: true, ...resolved });
+    } catch (err: any) {
+      return c.json({ success: false, error: err.message }, 400);
+    }
+  }
+
   @Delete("/object")
   async deleteObject(c: Context) {
     try {
-      const { key } = await c.req.json();
+      const { key: requestedKey } = await c.req.json();
+      const key = this.validateKey(requestedKey);
       if (!key) {
         return c.json({ error: "key is required" }, 400);
       }

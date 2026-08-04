@@ -2,12 +2,25 @@
 
 This document describes the cross-service student profile integration between **ParentUP** (Parent Mobile App & Backend), **PedConnect** (Isolated White-Labeled Therapy Center Web Dashboard & Backend), and **Core** (Central Master Directory of Centers).
 
+## Related Documents
+
+- [Pedconnect Public Parent Intake system design](./PEDCONNECT_PUBLIC_PARENT_INTAKE_SYSTEM_DESIGN.md)
+- [Pedconnect Public Parent Intake implementation and rollout](./PEDCONNECT_PUBLIC_PARENT_INTAKE_ROLLOUT.md)
+
+## Pre-Account Invitation Intake
+
+An Administrator or Frontdesk Officer invites a specific email from Pedconnect. After ParentUP confirms that the email is not already registered, Pedconnect emails a center-branded, 30-day, single-submit link at `/intake-form?session=...`. The opaque bearer session fixes the normalized email and center server-side, so the browser cannot replace either value.
+
+The parent submits one guardian and one to ten children with versioned inline consent. ParentUP atomically creates canonical accountless parent, family, kid, relationship, and pending `center_kids` records. The children immediately appear in the originating center's pending queue. If signup occurs between invitation and submission, ParentUP rejects the intake instead of creating a merge conflict.
+
+When the parent later creates ParentUP credentials, Better Auth requires verification of the same normalized email before an idempotent claim process attaches the existing parent and family to the user and organization. The process reuses all kid and `center_kids` identifiers. Pedconnect stores invitation/audit metadata but never a second demographic copy; after center acceptance it stores only ParentUP references and center-owned enrollment metadata.
+
 ---
 
 ## Architecture Overview
 
 - **Core Master Directory (`core_db.centers`)**: Stores the central catalog of onboarded therapy centers (`_id: 'CTR-100001'`, `name`, `slug`, `address`, `logoUri`). ParentUP queries Core to display the center catalog to parents.
-- **ParentUP Database (`parentup_db`)**: Stores family profiles, master child demographic records (`children`), and parent-controlled center connection links (`center_kid`).
+- **ParentUP Database (`parentup_db`)**: Stores family profiles, master child demographic records (`kids`), and parent-controlled center connection links (`center_kids`).
 - **PedConnect Center Instance (`pedconnect_db`)**: Each therapy center runs its own white-labeled Docker container instance configured via environment variable `CENTER_ID="CTR-100001"`, storing center-specific operational student metadata (`students`), programs, and session schedules.
 
 
@@ -16,7 +29,7 @@ sequenceDiagram
     autonumber
     actor Parent as Parent (ParentUP App)
     participant PU_DB as ParentUP DB (parentup_db)
-    participant PU_SVR as ParentUP Server (:3005)
+    participant PU_SVR as ParentUP Server (:3004)
     participant PC_SVR as PedConnect Server (:3006)
     participant PC_DB as PedConnect DB (pedconnect_db)
     actor Officer as Frontdesk Officer (PedConnect App)
@@ -25,7 +38,7 @@ sequenceDiagram
     rect rgb(240, 240, 255)
     Note over Parent, PU_DB: 1. Invitation Phase (ParentUP)
     Parent->>PU_SVR: Select Center (GraphQL: selectCenter)
-    PU_SVR->>PU_DB: Create center_kid (ID: CKD-100001, status: 'pending')
+    PU_SVR->>PU_DB: Create center_kids record (ID: CKD-100001, status: 'pending')
     end
 
     %% Step 2: Center Inspects & Accepts Invitation
@@ -33,21 +46,21 @@ sequenceDiagram
     Note over Officer, PC_DB: 2. Acceptance Phase (PedConnect)
     Officer->>PC_SVR: View Students / Pending Intake Requests
     PC_SVR->>PU_SVR: Fetch pending/connected kids for centerId (GraphQL)
-    PU_SVR->>PU_DB: Query center_kid WHERE centerId = 'CTR-100001' AND status != 'revoked'
-    PU_DB-->>PU_SVR: Return pending center_kid + child profile
-    PU_SVR-->>PC_SVR: Child & Guardian Demographics
+    PU_SVR->>PU_DB: Query center_kids WHERE centerId = 'CTR-100001' AND status != 'revoked'
+    PU_DB-->>PU_SVR: Return pending center_kids record + child profile
+    PU_SVR-->>PC_SVR: Child & Parent Demographics
     PC_SVR-->>Officer: Display in "Pending Intake" Queue
-    Officer->>PC_SVR: Click "Accept & Enroll" (Code: '23022')
+    Officer->>PC_SVR: Click "Accept & Enroll"
     PC_SVR->>PU_SVR: Mutation acceptCenterKidInvitation(CKD-100001)
-    PU_SVR->>PU_DB: Update center_kid status = 'connected'
-    PC_SVR->>PC_DB: Insert local student record (ID: STU-100001, code: '23022', centerKidId: 'CKD-100001')
+    PU_SVR->>PU_DB: Update center_kids status = 'connected'
+    PC_SVR->>PC_DB: Insert local relationship reference (centerKidId, parentupChildId)
     end
 
     %% Step 3: Parent Revocation (If triggered)
     rect rgb(255, 240, 240)
     Note over Parent, PC_SVR: 3. Revocation Phase (ParentUP)
     Parent->>PU_SVR: Click "Revoke Center Access"
-    PU_SVR->>PU_DB: Update center_kid status = 'revoked'
+    PU_SVR->>PU_DB: Update center_kids status = 'revoked'
     PC_SVR->>PU_SVR: Subsequent profile request
     PU_SVR-->>PC_SVR: Access Revoked (null demographics)
     PC_SVR-->>Officer: UI displays "Access Revoked by Parent"
@@ -58,13 +71,13 @@ sequenceDiagram
 
 ## Identifier Conventions
 - **Internal Database Linking**: Standard native MongoDB IDs (`_id`) are used for database indexes and primary key/foreign key relations.
-- **Universal Public Identifier (`publicId`)**: An explicit top-level `publicId` field (e.g. `CHD-100001`, `STU-100001`, `CKD-100001`) is attached to student and child records for universal public referencing across PedConnect, TeachDay, PedMD, and ParentUP.
+- **Universal Public Identifier (`publicId`)**: ParentUP assigns explicit child and connection public IDs such as `CHD-100001` and `CKD-100001`. Pedconnect resolves the child's public ID live from ParentUP; its local student relationship uses an internal UUID plus ParentUP references.
 
 | Entity | Prefix | Example `publicId` | Internal `_id` | Database |
 | :--- | :--- | :--- | :--- | :--- |
 | Child Profile | `CHD` | `CHD-100001` | MongoDB ObjectId / UUID | `parentup_db` |
 | Center Kid Connection | `CKD` | `CKD-100001` | MongoDB ObjectId / UUID | `parentup_db` |
-| Local Center Student | `STU` | `STU-100001` | MongoDB ObjectId / UUID | `pedconnect_db` |
+| Local Center Student Reference | — | Uses child `CHD` public ID when resolved | UUID | `pedconnect_db` |
 | Center / Branch | `CTR` | `CTR-100001` | MongoDB ObjectId / UUID | `pedconnect_db` |
 
 
@@ -74,14 +87,15 @@ sequenceDiagram
 
 ### 1. ParentUP Collections (`parentup_db`)
 
-#### `center_kid` Collection
+#### `center_kids` Collection
 Junction document managed directly by the parent to grant, confirm, or revoke center access to a child's profile.
 ```typescript
 export interface DbCenterKid {
-  _id: string;              // e.g., 'CKD-100001'
+  _id: ObjectId;
+  publicId: string;         // e.g., 'CKD-100001'
   centerId: string;         // e.g., 'CTR-100001'
-  childId: string;          // e.g., 'CHD-100001'
-  parentId: string;         // e.g., 'PAR-100001'
+  kidId: ObjectId;          // Points to kids._id
+  parentId: ObjectId;       // Points to parents._id
   status: 'pending' | 'connected' | 'revoked';
   invitedAt: Date;
   connectedAt?: Date | null;
@@ -91,12 +105,12 @@ export interface DbCenterKid {
 }
 ```
 
-#### `children` Collection
+#### `kids` Collection
 Master demographic record maintained by the parent in ParentUP.
 ```typescript
-export interface DbChild {
-  _id: string;              // e.g., 'CHD-100001'
-  parentId: string;
+export interface DbKid {
+  _id: ObjectId;
+  publicId: string;         // e.g., 'CHD-100001'
   firstName: string;
   lastName: string;
   nickname?: string | null;
@@ -113,6 +127,88 @@ export interface DbChild {
 }
 ```
 
+#### `parents` Collection
+ParentUP people who are authorized to manage family and child profiles. A parent can
+exist without a ParentUP account; account-backed parents reference Better Auth.
+```typescript
+export interface DbParent {
+  _id: ObjectId;
+  publicId: string;         // e.g., 'PAR-100001'
+  userId?: ObjectId | null; // Points to Better Auth auth_users._id
+  firstName: string;
+  lastName: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+#### `parent_kids` Collection
+Child-specific parent relationships. Keeping this separate allows one parent profile
+to manage multiple children.
+```typescript
+export interface DbParentKid {
+  _id: ObjectId;
+  parentId: ObjectId;       // Points to parents._id
+  kidId: ObjectId;          // Points to kids._id
+  relationship: string;
+  isPrimaryContact: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+#### `families` Collection
+The ParentUP family record. `organizationId` links an account-backed family to the
+corresponding Better Auth organization.
+```typescript
+export interface DbFamily {
+  _id: ObjectId;
+  publicId: string;         // e.g., 'FAM-100001'
+  organizationId?: ObjectId | null;
+  name: string;
+  slug: string;
+  logo?: string | null;
+  values: string[];
+  mission?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+#### `family_parents` Collection
+Every ParentUP parent belongs to a family through an explicit membership record.
+```typescript
+export interface DbFamilyParent {
+  _id: ObjectId;
+  familyId: ObjectId;       // Points to families._id
+  parentId: ObjectId;       // Points to parents._id
+  role: 'owner' | 'organizer' | 'member';
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+#### `family_kids` Collection
+Children belong to families through a junction record rather than a direct parent
+field. This supports multi-child, blended, and shared-custody families.
+```typescript
+export interface DbFamilyKid {
+  _id: ObjectId;
+  familyId: ObjectId;       // Points to families._id
+  kidId: ObjectId;          // Points to kids._id
+  status: 'active' | 'pending' | 'removed';
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+Parent access to a child is authorized through `family_parents -> families ->
+family_kids`. The `parent_kids` collection stores relationship metadata only;
+it is not an authorization boundary.
+
 ---
 
 ### 2. PedConnect Collections (`pedconnect_db`)
@@ -121,15 +217,13 @@ export interface DbChild {
 Local center-specific operational metadata. Holds references to ParentUP IDs (`centerKidId` and `parentupChildId`).
 ```typescript
 export interface DbStudent {
-  _id: string;              // e.g., 'STU-100001'
-  centerId: string;         // e.g., 'CTR-100001'
+  _id: string;              // Pedconnect-local UUID
+  centerId: string;         // Pedconnect organization ID
   centerKidId: string;      // Points to 'CKD-100001' in parentup_db
   parentupChildId: string;  // Points to 'CHD-100001' in parentup_db
-  code: string;             // Center-assigned student code (e.g. '23022')
   status: 'Active' | 'Inactive' | 'Pending';
   enrollmentDate: string;
   programManagerId?: string | null;
-  internalNotes?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -140,17 +234,21 @@ export interface DbStudent {
 ## Service API Integration Specifications
 
 ### 1. ParentUP GraphQL API
+- Parent-owned operations require a Better Auth session.
+- PediaConnect operations require the shared `PARENTUP_API_KEY` in `x-api-key`.
 - `selectCenter(centerId: ID!, childId: ID!): CenterKid!`
-  - Creates a new `center_kid` document in `parentup_db` with `status: 'pending'`.
+  - Creates a new `center_kids` document in `parentup_db` with `status: 'pending'`.
 - `acceptCenterKidInvitation(centerKidId: ID!, centerId: ID!): CenterKid!`
-  - Updates `center_kid.status` to `'connected'`.
+  - Updates `center_kids.status` to `'connected'`.
 - `revokeCenterKidAccess(centerKidId: ID!): CenterKid!`
-  - Updates `center_kid.status` to `'revoked'`.
-- `Query.connectedCenterKids(centerId: ID!, status: String): [ConnectedChildPayload!]!`
+  - Updates `center_kids.status` to `'revoked'`.
+- `Query.connectedCenterKids(centerId: ID!, status: String): [CenterKid!]!`
   - Returns authorized child and family demographic records for the requesting center ID.
 
 ### 2. PedConnect GraphQL API
 - `Query.students(status: StudentStatus): [Student!]!`
-  - Fetches local operational students from `pedconnect_db.students` alongside pending invitations from `parentup-server`, joining demographics dynamically.
-- `Mutation.acceptInvitation(centerKidId: ID!, code: String!, programManagerId: ID): Student!`
+  - Resolves accepted local relationship references and joins live demographics from ParentUP.
+- `Query.pendingStudentInvitations: [PendingStudentInvitation!]!`
+  - Fetches pending ParentUP connections and their live guardian and child demographics.
+- `Mutation.acceptInvitation(centerKidId: ID!, programManagerId: ID): Student!`
   - Invokes `acceptCenterKidInvitation` on ParentUP Server and creates the local `pedconnect_db.students` operational record.

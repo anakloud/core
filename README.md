@@ -41,6 +41,10 @@ pnpm dev          # or run all workspaces via turbo
 pnpm typecheck    # turbo run typecheck across workspaces
 ```
 
+## Asset storage
+
+Core owns Cloudflare R2 access for every application. Applications persist durable object keys and ask Core for short-lived browser-safe URLs when records are read. See [the asset storage contract](docs/ASSET_STORAGE_CONTRACT.md).
+
 ## Auth model
 
 Inter-service authentication via `x-api-key`:
