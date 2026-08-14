@@ -2,6 +2,7 @@ export const domainTypeDefs = /* GraphQL */ `
   type Domain {
     id: ID!
     name: String!
+    description: String
     serviceId: ID!
     areas: [Area!]!
     createdAt: DateTime
