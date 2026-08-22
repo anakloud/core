@@ -20,7 +20,10 @@ Copy the `.env.example` in `apps/core-server`:
 cp apps/core-server/.env.example apps/core-server/.env
 ```
 
-Configure your MongoDB connection string in `apps/core-server/.env`:
+Run `pnpm init:dev` once to authenticate the Infisical CLI. Development commands
+load Core's environment through the project settings in `.infisical.json`.
+
+For local overrides without Infisical, configure `apps/core-server/.env`:
 ```env
 PORT=3001
 MONGO_URI=mongodb+srv://user:password@host/db_name
@@ -35,6 +38,7 @@ openssl rand -hex 32
 ### 2. Development Servers
 ```sh
 pnpm install
+pnpm init:dev      # first-time Infisical login
 
 pnpm dev:server   # http://localhost:3001
 pnpm dev          # or run all workspaces via turbo

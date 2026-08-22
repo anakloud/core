@@ -8,13 +8,18 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "dev": "dotenv -e apps/core-server/.env -- turbo run dev",
-    "dev:server": "pnpm --filter core-server dev",
+    "init:dev": "pnpm --dir apps/core-server init:dev",
+    "dev": "turbo run dev",
+    "dev:server": "pnpm --dir apps/core-server dev",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
-    "dotenv-cli": "^11.0.0",
     "turbo": "^2.8.14"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@infisical/cli"
+    ]
   },
   "packageManager": "pnpm@10.17.1"
 }
