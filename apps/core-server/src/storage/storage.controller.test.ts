@@ -1,21 +1,21 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { Hono } from "hono";
-import { registerController } from "../lib/decorators.ts";
+import { registerController } from "../lib/utils.ts";
 import { StorageController } from "./storage.controller.ts";
 import { storageService } from "./storage.service.ts";
 
-const originalApiKey = process.env["API_KEY"];
+const originalApiKey = process.env["CORE_API_KEY"];
 const originalGetObjectInfo = storageService.getObjectInfo;
 
 afterEach(() => {
-  if (originalApiKey === undefined) delete process.env["API_KEY"];
-  else process.env["API_KEY"] = originalApiKey;
+  if (originalApiKey === undefined) delete process.env["CORE_API_KEY"];
+  else process.env["CORE_API_KEY"] = originalApiKey;
   storageService.getObjectInfo = originalGetObjectInfo;
 });
 
 describe("POST /storage/object-info", () => {
   test("requires service authentication", async () => {
-    process.env["API_KEY"] = "core-test-key";
+    process.env["CORE_API_KEY"] = "core-test-key";
     const app = new Hono();
     registerController(app, StorageController);
 
@@ -24,10 +24,15 @@ describe("POST /storage/object-info", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ key: "sessions/center/session/capture.m4a" }),
     })).status).toBe(401);
+    expect((await app.request("/storage/object-info", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-service-key": "core-test-key" },
+      body: JSON.stringify({ key: "sessions/center/session/capture.m4a" }),
+    })).status).toBe(401);
   });
 
   test("returns durable object metadata", async () => {
-    process.env["API_KEY"] = "core-test-key";
+    process.env["CORE_API_KEY"] = "core-test-key";
     storageService.getObjectInfo = async (key) => ({
       key,
       contentType: "audio/mp4",

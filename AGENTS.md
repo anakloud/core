@@ -45,7 +45,7 @@ pnpm build            # turbo run build
 
 - **Runtime:** Bun (`bun run --hot src/index.ts`)
 - **HTTP Framework:** HonoJS `^4.12.23`
-- **GraphQL:** GraphQL Yoga `^5.21.0`
+- **API:** Hono REST controllers for catalog, mail, and storage operations
 - **Entry point:** `src/index.ts`
 
 ---
