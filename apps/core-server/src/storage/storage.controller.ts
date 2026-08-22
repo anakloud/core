@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { Controller, Post, Delete } from "../lib/decorators.ts";
+import { Controller, Post, Delete } from "../lib/utils.ts";
 import { storageService } from "./storage.service.ts";
 import { storagePreviewService } from "./storage-preview.service.ts";
 

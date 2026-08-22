@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import type { Context, Hono } from "hono";
-import { timingSafeEqual } from "node:crypto";
+import { apiKeyMiddleware } from "../middlewares/api-key.middleware.ts";
 
 const ROUTES_KEY = Symbol("routes");
 const PREFIX_KEY = Symbol("prefix");
@@ -25,12 +25,7 @@ function createMethodDecorator(method: RouteMetadata["method"]) {
     return (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
       const routes: RouteMetadata[] = Reflect.getMetadata(ROUTES_KEY, target.constructor) || [];
       const isPublic = Reflect.getMetadata(PUBLIC_KEY, target, propertyKey) || false;
-      routes.push({
-        method,
-        path,
-        handlerName: propertyKey,
-        isPublic,
-      });
+      routes.push({ method, path, handlerName: propertyKey, isPublic });
       Reflect.defineMetadata(ROUTES_KEY, routes, target.constructor);
       return descriptor;
     };
@@ -57,24 +52,10 @@ export function registerController(app: Hono, controllerClass: any) {
 
   routes.forEach((route) => {
     const fullPath = `${prefix}${route.path}`;
+    const handler = async (c: Context, next: () => Promise<void>) =>
+      instance[route.handlerName](c, next);
 
-    app[route.method](fullPath, async (c: Context, next) => {
-      if (!route.isPublic) {
-        const expectedKey = process.env["API_KEY"] || process.env["CORE_API_KEY"];
-        const apiKey = c.req.header("x-api-key") || c.req.header("x-service-key");
-        const expectedBuffer = expectedKey ? Buffer.from(expectedKey) : null;
-        const providedBuffer = apiKey ? Buffer.from(apiKey) : null;
-        const authenticated = Boolean(
-          expectedBuffer
-          && providedBuffer
-          && expectedBuffer.length === providedBuffer.length
-          && timingSafeEqual(expectedBuffer, providedBuffer),
-        );
-        if (!authenticated) {
-          return c.json({ error: "Unauthenticated: missing or invalid x-api-key header" }, 401);
-        }
-      }
-      return instance[route.handlerName](c, next);
-    });
+    if (route.isPublic) app[route.method](fullPath, handler);
+    else app[route.method](fullPath, apiKeyMiddleware(), handler);
   });
 }

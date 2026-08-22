@@ -27,19 +27,22 @@ RUN bun build src/index.ts --target=bun --outfile=dist/index.js
 FROM oven/bun:1.1-slim AS runner
 WORKDIR /app/apps/core-server
 
+# Install runtime document tools and the Infisical CLI.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends libreoffice-core libreoffice-writer poppler-utils fonts-dejavu-core \
+  && apt-get install -y --no-install-recommends bash ca-certificates curl \
+  && curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends infisical libreoffice-core libreoffice-writer poppler-utils fonts-dejavu-core \
   && rm -rf /var/lib/apt/lists/*
 
-# Copy ONLY the static bundled index.js
+# Copy the bundled server and its Infisical launch configuration.
 COPY --from=builder /app/apps/core-server/dist ./dist
+COPY start.sh ./
 
 # Set environment variables for production
+ARG APP_ENV=prod
+ENV APP_ENV=$APP_ENV
 ENV NODE_ENV=production
-ENV PORT=3001
 
-# Expose server listener port
 EXPOSE 3001
-
-# Run the bundled file directly
-CMD ["bun", "run", "dist/index.js"]
+CMD ["./start.sh"]
