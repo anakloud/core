@@ -1,3 +1,7 @@
+---
+title: Core Asset Storage Contract
+---
+
 # Core Asset Storage Contract
 
 Core is the only service that talks directly to Cloudflare R2. Application servers request upload and download URLs from Core; browser and mobile clients never receive R2 credentials or a Core service key.

@@ -1,3 +1,7 @@
+---
+title: Consumers
+---
+
 # Core API Consumers
 
 This inventory records the in-repository services that previously called

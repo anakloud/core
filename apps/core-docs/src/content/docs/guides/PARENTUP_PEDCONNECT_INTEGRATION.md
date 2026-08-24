@@ -1,21 +1,10 @@
+---
+title: ParentUp and PedConnect Integration
+---
+
 # ParentUP & PedConnect Student Profile Integration Architecture
 
 This document describes the cross-service student profile integration between **ParentUP** (Parent Mobile App & Backend), **PedConnect** (Isolated White-Labeled Therapy Center Web Dashboard & Backend), and **Core** (Central Master Directory of Centers).
-
-## Related Documents
-
-- [Pedconnect Public Parent Intake system design](./PEDCONNECT_PUBLIC_PARENT_INTAKE_SYSTEM_DESIGN.md)
-- [Pedconnect Public Parent Intake implementation and rollout](./PEDCONNECT_PUBLIC_PARENT_INTAKE_ROLLOUT.md)
-
-## Pre-Account Invitation Intake
-
-An Administrator or Frontdesk Officer invites a specific email from Pedconnect. After ParentUP confirms that the email is not already registered, Pedconnect emails a center-branded, 30-day, single-submit link at `/intake-form?session=...`. The opaque bearer session fixes the normalized email and center server-side, so the browser cannot replace either value.
-
-The parent submits one guardian and one to ten children with versioned inline consent. ParentUP atomically creates canonical accountless parent, family, kid, relationship, and pending `center_kids` records. The children immediately appear in the originating center's pending queue. If signup occurs between invitation and submission, ParentUP rejects the intake instead of creating a merge conflict.
-
-When the parent later creates ParentUP credentials, Better Auth requires verification of the same normalized email before an idempotent claim process attaches the existing parent and family to the user and organization. The process reuses all kid and `center_kids` identifiers. Pedconnect stores invitation/audit metadata but never a second demographic copy; after center acceptance it stores only ParentUP references and center-owned enrollment metadata.
-
----
 
 ## Architecture Overview
 

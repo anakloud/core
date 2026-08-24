@@ -11,6 +11,7 @@
     "init:dev": "pnpm --dir apps/core-server init:dev",
     "dev": "turbo run dev",
     "dev:server": "pnpm --dir apps/core-server dev",
+    "docs:dev": "pnpm --dir apps/core-docs dev",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
