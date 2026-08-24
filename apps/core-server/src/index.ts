@@ -7,6 +7,7 @@ import { DomainsController } from "./domains/domains.controller.ts";
 import { MailController } from "./mail/mail.controller.ts";
 import { ServicesController } from "./services/services.controller.ts";
 import { StorageController } from "./storage/storage.controller.ts";
+import { CentersController } from "./centers/centers.controller.ts";
 import mongoose from "mongoose";
 import { serve } from "@hono/node-server";
 
@@ -37,6 +38,7 @@ const startServer = async () => {
   registerController(app, ServicesController);
   registerController(app, DomainsController);
   registerController(app, AreasController);
+  registerController(app, CentersController);
 
   serve(
     {

@@ -8,9 +8,9 @@ This document describes the cross-service student profile integration between **
 
 ## Architecture Overview
 
-- **Core Master Directory (`core_db.centers`)**: Stores the central catalog of onboarded therapy centers (`_id: 'CTR-100001'`, `name`, `slug`, `address`, `logoUri`). ParentUP queries Core to display the center catalog to parents.
-- **ParentUP Database (`parentup_db`)**: Stores family profiles, master child demographic records (`kids`), and parent-controlled center connection links (`center_kids`).
-- **PedConnect Center Instance (`pedconnect_db`)**: Each therapy center runs its own white-labeled Docker container instance configured via environment variable `CENTER_ID="CTR-100001"`, storing center-specific operational student metadata (`students`), programs, and session schedules.
+- **Core Master Directory (`core_db.centers`)**: Stores the central catalog of onboarded therapy centers with an ObjectId `_id`, human-readable `publicId` such as `CTR-1001`, `name`, and PedConnect `namespace`. ParentUP queries Core to display the center catalog to parents.
+- **ParentUP Database (`parentup_db`)**: Stores family profiles, master child demographic records, and parent-controlled links in `center_connections`. Each link stores the Core center ObjectId string as `centerId`.
+- **PedConnect Center Instance (`pedconnect_db`)**: Each therapy center is selected by its Core-owned namespace, using URLs such as `https://trails.pedconnect.anakloud.com`.
 
 
 ```mermaid
@@ -27,7 +27,7 @@ sequenceDiagram
     rect rgb(240, 240, 255)
     Note over Parent, PU_DB: 1. Invitation Phase (ParentUP)
     Parent->>PU_SVR: Select Center (GraphQL: selectCenter)
-    PU_SVR->>PU_DB: Create center_kids record (ID: CKD-100001, status: 'pending')
+    PU_SVR->>PU_DB: Create center_connections record (status: 'pending')
     end
 
     %% Step 2: Center Inspects & Accepts Invitation
@@ -35,13 +35,13 @@ sequenceDiagram
     Note over Officer, PC_DB: 2. Acceptance Phase (PedConnect)
     Officer->>PC_SVR: View Students / Pending Intake Requests
     PC_SVR->>PU_SVR: Fetch pending/connected kids for centerId (GraphQL)
-    PU_SVR->>PU_DB: Query center_kids WHERE centerId = 'CTR-100001' AND status != 'revoked'
-    PU_DB-->>PU_SVR: Return pending center_kids record + child profile
+    PU_SVR->>PU_DB: Query center_connections by Core center ObjectId and status
+    PU_DB-->>PU_SVR: Return pending connection record + child profile
     PU_SVR-->>PC_SVR: Child & Parent Demographics
     PC_SVR-->>Officer: Display in "Pending Intake" Queue
     Officer->>PC_SVR: Click "Accept & Enroll"
     PC_SVR->>PU_SVR: Mutation acceptCenterKidInvitation(CKD-100001)
-    PU_SVR->>PU_DB: Update center_kids status = 'connected'
+    PU_SVR->>PU_DB: Update center_connections status = 'connected'
     PC_SVR->>PC_DB: Insert local relationship reference (centerKidId, parentupChildId)
     end
 
@@ -49,7 +49,7 @@ sequenceDiagram
     rect rgb(255, 240, 240)
     Note over Parent, PC_SVR: 3. Revocation Phase (ParentUP)
     Parent->>PU_SVR: Click "Revoke Center Access"
-    PU_SVR->>PU_DB: Update center_kids status = 'revoked'
+    PU_SVR->>PU_DB: Update center_connections status = 'revoked'
     PC_SVR->>PU_SVR: Subsequent profile request
     PU_SVR-->>PC_SVR: Access Revoked (null demographics)
     PC_SVR-->>Officer: UI displays "Access Revoked by Parent"
@@ -67,7 +67,7 @@ sequenceDiagram
 | Child Profile | `CHD` | `CHD-100001` | MongoDB ObjectId / UUID | `parentup_db` |
 | Center Kid Connection | `CKD` | `CKD-100001` | MongoDB ObjectId / UUID | `parentup_db` |
 | Local Center Student Reference | — | Uses child `CHD` public ID when resolved | UUID | `pedconnect_db` |
-| Center / Branch | `CTR` | `CTR-100001` | MongoDB ObjectId / UUID | `pedconnect_db` |
+| Center | `CTR` | `CTR-1001` | MongoDB ObjectId | `core_db` |
 
 
 ---
@@ -76,13 +76,13 @@ sequenceDiagram
 
 ### 1. ParentUP Collections (`parentup_db`)
 
-#### `center_kids` Collection
+#### `center_connections` Collection
 Junction document managed directly by the parent to grant, confirm, or revoke center access to a child's profile.
 ```typescript
 export interface DbCenterKid {
   _id: ObjectId;
   publicId: string;         // e.g., 'CKD-100001'
-  centerId: string;         // e.g., 'CTR-100001'
+  centerId: string;         // Core center ObjectId string
   kidId: ObjectId;          // Points to kids._id
   parentId: ObjectId;       // Points to parents._id
   status: 'pending' | 'connected' | 'revoked';
@@ -226,11 +226,11 @@ export interface DbStudent {
 - Parent-owned operations require a Better Auth session.
 - PediaConnect operations require the shared `PARENTUP_API_KEY` in `x-api-key`.
 - `selectCenter(centerId: ID!, childId: ID!): CenterKid!`
-  - Creates a new `center_kids` document in `parentup_db` with `status: 'pending'`.
+  - Creates a new `center_connections` document in `parentup_db` with `status: 'pending'`.
 - `acceptCenterKidInvitation(centerKidId: ID!, centerId: ID!): CenterKid!`
-  - Updates `center_kids.status` to `'connected'`.
+  - Updates `center_connections.status` to `'connected'`.
 - `revokeCenterKidAccess(centerKidId: ID!): CenterKid!`
-  - Updates `center_kids.status` to `'revoked'`.
+  - Updates `center_connections.status` to `'revoked'`.
 - `Query.connectedCenterKids(centerId: ID!, status: String): [CenterKid!]!`
   - Returns authorized child and family demographic records for the requesting center ID.
 
