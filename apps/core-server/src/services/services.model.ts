@@ -11,6 +11,7 @@ export interface ServiceInput {
 }
 
 export interface ServiceModel extends Required<Pick<ServiceInput, "code" | "name" | "active">> {
+  publicId: string;
   description?: string | null;
   category?: string | null;
   type?: string | null;
@@ -21,6 +22,7 @@ export interface ServiceModel extends Required<Pick<ServiceInput, "code" | "name
 
 const ServiceSchema = new Schema<ServiceModel>(
   {
+    publicId: { type: String, required: true, unique: true, immutable: true },
     code: { type: String, required: true, trim: true, uppercase: true },
     name: { type: String, required: true, trim: true },
     description: { type: String, default: null },

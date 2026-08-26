@@ -1,4 +1,4 @@
-import { Types, type FilterQuery, type Model } from "mongoose";
+import { model, Schema, Types, type FilterQuery, type Model } from "mongoose";
 import type { ServiceInput } from "./services.model.ts";
 import ServiceModel, { type ServiceModel as IService } from "./services.model.ts";
 
@@ -8,10 +8,28 @@ export class CatalogError extends Error {
   }
 }
 
-function idQuery(id: string) {
-  return Types.ObjectId.isValid(id)
-    ? { $or: [{ _id: new Types.ObjectId(id) }, { id }] }
-    : { id };
+function publicIdQuery(publicId: string) {
+  return Types.ObjectId.isValid(publicId)
+    ? { $or: [{ _id: new Types.ObjectId(publicId) }, { publicId }] }
+    : { publicId };
+}
+
+const CounterModel = model(
+  "ServiceCounter",
+  new Schema({
+    _id: { type: String, required: true },
+    sequence: { type: Number, required: true },
+  }),
+  "counters",
+);
+
+async function nextPublicId() {
+  const counter = await CounterModel.findByIdAndUpdate(
+    "service_public_id",
+    [{ $set: { sequence: { $add: [{ $ifNull: ["$sequence", 1000] }, 1] } } }],
+    { new: true, upsert: true },
+  ).lean();
+  return `SRV-${counter.sequence}`;
 }
 
 export class ServicesService {
@@ -23,19 +41,23 @@ export class ServicesService {
     return this.model.find(query).sort({ code: 1 });
   }
 
-  async getById(id: string) {
-    const row = await this.model.findOne(idQuery(id));
+  async getByPublicId(publicId: string) {
+    const row = await this.model.findOne(publicIdQuery(publicId));
     if (!row) throw new CatalogError("Service not found", 404);
     return row;
   }
 
   async create(input: ServiceInput) {
-    return this.model.create({ ...input, active: input.active ?? true });
+    return this.model.create({
+      ...input,
+      publicId: await nextPublicId(),
+      active: input.active ?? true,
+    });
   }
 
-  async update(id: string, input: ServiceInput) {
+  async update(publicId: string, input: ServiceInput) {
     const result = await this.model.findOneAndUpdate(
-      idQuery(id),
+      publicIdQuery(publicId),
       { $set: input },
       { new: true, runValidators: true },
     );
@@ -43,10 +65,10 @@ export class ServicesService {
     return result;
   }
 
-  async delete(id: string) {
-    const result = await this.model.findOneAndDelete(idQuery(id));
+  async delete(publicId: string) {
+    const result = await this.model.findOneAndDelete(publicIdQuery(publicId));
     if (!result) throw new CatalogError("Service not found", 404);
-    return { id };
+    return { publicId: result.publicId };
   }
 }
 

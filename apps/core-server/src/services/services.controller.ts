@@ -31,10 +31,12 @@ export class ServicesController {
     }
   }
 
-  @Get("/:id")
-  async getById(c: Context) {
+  @Get("/:publicId")
+  async getByPublicId(c: Context) {
     try {
-      return c.json(await servicesService.getById(c.req.param("id")!));
+      return c.json(
+        await servicesService.getByPublicId(c.req.param("publicId")!),
+      );
     } catch (cause) {
       return error(c, cause);
     }
@@ -49,21 +51,24 @@ export class ServicesController {
     }
   }
 
-  @Patch("/:id")
+  @Patch("/:publicId")
   async update(c: Context) {
     try {
       return c.json(
-        await servicesService.update(c.req.param("id")!, await c.req.json()),
+        await servicesService.update(
+          c.req.param("publicId")!,
+          await c.req.json(),
+        ),
       );
     } catch (cause) {
       return error(c, cause);
     }
   }
 
-  @Delete("/:id")
+  @Delete("/:publicId")
   async delete(c: Context) {
     try {
-      return c.json(await servicesService.delete(c.req.param("id")!));
+      return c.json(await servicesService.delete(c.req.param("publicId")!));
     } catch (cause) {
       return error(c, cause);
     }

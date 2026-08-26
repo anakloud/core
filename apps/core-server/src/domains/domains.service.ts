@@ -5,7 +5,9 @@ import { CatalogError } from "../services/services.service.ts";
 import DomainModel, { type DomainInput, type DomainModel as IDomain } from "./domains.model.ts";
 
 function idQuery(id: string) {
-  return Types.ObjectId.isValid(id) ? { $or: [{ _id: new Types.ObjectId(id) }, { id }] } : { id };
+  return Types.ObjectId.isValid(id)
+    ? { $or: [{ _id: new Types.ObjectId(id) }, { publicId: id }] }
+    : { publicId: id };
 }
 
 function isDuplicateKey(cause: unknown) {
