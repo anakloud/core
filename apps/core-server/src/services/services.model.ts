@@ -7,10 +7,10 @@ export interface ServiceInput {
   category?: string | null;
   type?: string | null;
   defaultDurationMins?: number | null;
-  isActive?: boolean;
+  active?: boolean;
 }
 
-export interface ServiceModel extends Required<Pick<ServiceInput, "code" | "name" | "isActive">> {
+export interface ServiceModel extends Required<Pick<ServiceInput, "code" | "name" | "active">> {
   description?: string | null;
   category?: string | null;
   type?: string | null;
@@ -27,7 +27,7 @@ const ServiceSchema = new Schema<ServiceModel>(
     category: { type: String, default: null },
     type: { type: String, default: null },
     defaultDurationMins: { type: Number, default: null },
-    isActive: { type: Boolean, default: true },
+    active: { type: Boolean, default: true },
   },
   { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } },
 );

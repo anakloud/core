@@ -17,9 +17,9 @@ function idQuery(id: string) {
 export class ServicesService {
   private model: Model<IService> = ServiceModel;
 
-  async getAll(isActive?: boolean) {
+  async getAll(active?: boolean) {
     const query: FilterQuery<IService> = {};
-    if (isActive !== undefined) query.isActive = isActive;
+    if (active !== undefined) query.active = active;
     return this.model.find(query).sort({ code: 1 });
   }
 
@@ -30,7 +30,7 @@ export class ServicesService {
   }
 
   async create(input: ServiceInput) {
-    return this.model.create({ ...input, isActive: input.isActive ?? true });
+    return this.model.create({ ...input, active: input.active ?? true });
   }
 
   async update(id: string, input: ServiceInput) {
