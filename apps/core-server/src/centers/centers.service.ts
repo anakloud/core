@@ -46,6 +46,7 @@ function api(row: any) {
     publicId: String(row.publicId),
     namespace: String(row.namespace),
     name: String(row.name),
+    logo: row.logo ?? null,
     url: `https://${row.namespace}.pedconnect.anakloud.com`,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -85,9 +86,10 @@ export class CentersService {
   }
 
   async update(id: string, input: CenterInput) {
-    const patch: Record<string, string> = {};
+    const patch: Record<string, string | null> = {};
     if (input.name !== undefined) patch.name = required(input.name, "name");
     if (input.namespace !== undefined) patch.namespace = namespace(input.namespace);
+    if (input.logo !== undefined) patch.logo = input.logo ? String(input.logo).trim() : null;
     if (!Types.ObjectId.isValid(id)) throw new CenterError("Center not found", 404);
     const row = await CenterModel.findByIdAndUpdate(id, { $set: patch }, { new: true, runValidators: true }).lean();
     if (!row) throw new CenterError("Center not found", 404);

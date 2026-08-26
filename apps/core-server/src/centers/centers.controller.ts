@@ -14,13 +14,8 @@ export class CentersController {
     try { return c.json(await centersService.list()); } catch (cause) { return error(c, cause); }
   }
 
-  @Get("/:id")
+  @Get("/:namespace")
   async get(c: Context) {
-    try { return c.json(await centersService.get(c.req.param("id")!)); } catch (cause) { return error(c, cause); }
-  }
-
-  @Get("/namespace/:namespace")
-  async byNamespace(c: Context) {
     try { return c.json(await centersService.getByNamespace(c.req.param("namespace")!)); } catch (cause) { return error(c, cause); }
   }
 
