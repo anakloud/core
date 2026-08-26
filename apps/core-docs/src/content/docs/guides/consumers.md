@@ -31,7 +31,7 @@ The REST replacement must preserve the behavior these callers rely on:
 
 - Authentication through `x-api-key` using Core's `CORE_API_KEY`.
 - Service references use immutable public IDs such as `SRV-1001`.
-- Service lookup by immutable `publicId`, with Mongo `_id` compatibility during migration.
+- Service lookup uses the immutable `publicId`; internal Mongo identifiers are not exposed.
 - Filtering services by `active`, and domains by `serviceId` or `serviceCode`.
 - Domains returned with their areas for Admin and TeachDAY.
 - Existing ordering, timestamps, validation, duplicate-name errors, and

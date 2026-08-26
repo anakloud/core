@@ -31,7 +31,17 @@ const ServiceSchema = new Schema<ServiceModel>(
     defaultDurationMins: { type: Number, default: null },
     active: { type: Boolean, default: true },
   },
-  { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } },
+  {
+    timestamps: true,
+    toJSON: {
+      versionKey: false,
+      transform: (_document, service) => {
+        Reflect.deleteProperty(service, "_id");
+        Reflect.deleteProperty(service, "id");
+        return service;
+      },
+    },
+  },
 );
 
 export default model<ServiceModel>("Service", ServiceSchema, "services");

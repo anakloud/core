@@ -1,4 +1,4 @@
-import { model, Schema, Types, type FilterQuery, type Model } from "mongoose";
+import { model, Schema, type FilterQuery, type Model } from "mongoose";
 import type { ServiceInput } from "./services.model.ts";
 import ServiceModel, { type ServiceModel as IService } from "./services.model.ts";
 
@@ -9,9 +9,7 @@ export class CatalogError extends Error {
 }
 
 function publicIdQuery(publicId: string) {
-  return Types.ObjectId.isValid(publicId)
-    ? { $or: [{ _id: new Types.ObjectId(publicId) }, { publicId }] }
-    : { publicId };
+  return { publicId };
 }
 
 const CounterModel = model(
