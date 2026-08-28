@@ -5,7 +5,7 @@ import ServiceModel from "./service.model.ts";
 import { Types, type Model } from "mongoose";
 
 @Controller("/services")
-export class ServicesController {
+export class ServiceController {
   private readonly serviceModel: Model<IService> = ServiceModel;
 
   @Get()
@@ -23,7 +23,7 @@ export class ServicesController {
 
     const services = await this.serviceModel.aggregate([
       {
-        $addFields: { $toString: "$_id" },
+        $addFields: { id: { $toString: "$_id" } },
       },
       { $match: payload },
       {
@@ -66,9 +66,6 @@ export class ServicesController {
   @Get("/:id")
   async getById(c: Context) {
     const id = c.req.param("id");
-    const match = Types.ObjectId.isValid(id)
-      ? { _id: new Types.ObjectId(id) }
-      : { publicId: id };
     const service = await this.serviceModel.aggregate([
       {
         $addFields: {
@@ -76,7 +73,7 @@ export class ServicesController {
         },
       },
       {
-        $match: match,
+        $match: Types.ObjectId.isValid(id) ? { id } : { publicId: id },
       },
       {
         $lookup: {
@@ -88,6 +85,7 @@ export class ServicesController {
                 $expr: { $eq: ["$service", "$$serviceId"] },
               },
             },
+            { $addFields: { id: { $toString: "$_id" } } },
             { $sort: { order: 1 } },
             {
               $lookup: {
@@ -99,6 +97,7 @@ export class ServicesController {
                       $expr: { $eq: ["$targetArea", "$$targetAreaId"] },
                     },
                   },
+                  { $addFields: { id: { $toString: "$_id" } } },
                   { $sort: { order: 1 } },
                   {
                     $lookup: {
@@ -110,6 +109,7 @@ export class ServicesController {
                             $expr: { $eq: ["$subArea", "$$subAreaId"] },
                           },
                         },
+                        { $addFields: { id: { $toString: "$_id" } } },
                         { $sort: { order: 1 } },
                         {
                           $lookup: {
@@ -152,7 +152,6 @@ export class ServicesController {
         },
       },
     ]);
-
     return c.json(service[0] ?? null);
   }
 
