@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { Hono } from "hono";
-import { registerController } from "../lib/utils.ts";
+import { registerController } from "../utils.ts";
 import { StorageController } from "./storage.controller.ts";
 import { storageService } from "./storage.service.ts";
 

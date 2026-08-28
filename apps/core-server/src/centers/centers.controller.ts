@@ -1,41 +1,44 @@
 import type { Context } from "hono";
-import { Controller, Delete, Get, Patch, Post } from "../lib/utils.ts";
-import { CenterError, centersService } from "./centers.service.ts";
-
-function error(c: Context, cause: unknown) {
-  const status = (cause instanceof CenterError ? cause.status : 400) as 400 | 404 | 409;
-  return c.json({ error: cause instanceof Error ? cause.message : "Invalid request" }, status);
-}
+import { Controller, Delete, Get, Patch, Post, Public } from "../utils.ts";
+import { CenterService } from "./center.service.ts";
 
 @Controller("/centers")
 export class CentersController {
-  @Get("")
-  async list(c: Context) {
-    try { return c.json(await centersService.list()); } catch (cause) { return error(c, cause); }
+  private readonly centerService = new CenterService();
+
+  @Get()
+  async getAll(c: Context) {
+    const centers = await this.centerService.getAll();
+    return c.json(centers);
   }
 
   @Get("/:namespace")
-  async get(c: Context) {
-    try { return c.json(await centersService.getByNamespace(c.req.param("namespace")!)); } catch (cause) { return error(c, cause); }
+  @Public()
+  async getByNamespace(c: Context) {
+    const namespace = c.req.param("namespace");
+    const center = await this.centerService.getByNamespace(namespace);
+    return c.json(center);
   }
 
-  @Get("/:id/integration")
-  async integration(c: Context) {
-    try { return c.json(await centersService.get(c.req.param("id")!)); } catch (cause) { return error(c, cause); }
-  }
-
-  @Post("")
+  @Post()
   async create(c: Context) {
-    try { return c.json(await centersService.create(await c.req.json()), 201); } catch (cause) { return error(c, cause); }
+    const body = await c.req.json();
+    const center = await this.centerService.create(body);
+    return c.json(center);
   }
 
   @Patch("/:id")
   async update(c: Context) {
-    try { return c.json(await centersService.update(c.req.param("id")!, await c.req.json())); } catch (cause) { return error(c, cause); }
+    const id = c.req.param("id");
+    const body = await c.req.json();
+    const center = await this.centerService.update(id, body);
+    return c.json(center);
   }
 
   @Delete("/:id")
   async delete(c: Context) {
-    try { return c.json(await centersService.delete(c.req.param("id")!)); } catch (cause) { return error(c, cause); }
+    const id = c.req.param("id");
+    await this.centerService.delete(id);
+    return c.json({ success: true, id });
   }
 }

@@ -1,76 +1,184 @@
 import type { Context } from "hono";
-import { Controller, Delete, Get, Patch, Post } from "../lib/utils.ts";
-import { CatalogError, servicesService } from "./services.service.ts";
-
-function error(c: Context, cause: unknown) {
-  const status = (cause instanceof CatalogError ? cause.status : 400) as
-    | 400
-    | 404
-    | 409;
-  const message = cause instanceof Error ? cause.message : "Invalid request";
-  return c.json({ error: message }, status);
-}
-
-function booleanQuery(value: string | undefined) {
-  if (value === undefined) return undefined;
-  if (value === "true") return true;
-  if (value === "false") return false;
-  throw new CatalogError("active must be true or false");
-}
+import { Controller, Delete, Get, Patch, Post } from "../utils.ts";
+import type { IService } from "./service.model.ts";
+import ServiceModel from "./service.model.ts";
+import { Types, type Model } from "mongoose";
 
 @Controller("/services")
 export class ServicesController {
-  @Get("")
+  private readonly serviceModel: Model<IService> = ServiceModel;
+
+  @Get()
   async getAll(c: Context) {
-    try {
-      return c.json(
-        await servicesService.getAll(booleanQuery(c.req.query("active"))),
-      );
-    } catch (cause) {
-      return error(c, cause);
+    const queries = c.req.query();
+    const payload: Record<string, string | boolean> = { ...queries };
+
+    if (queries["active"] === "true") {
+      payload["active"] = true;
     }
+
+    if (queries["active"] === "false") {
+      payload["active"] = false;
+    }
+
+    const services = await this.serviceModel.aggregate([
+      {
+        $addFields: { $toString: "$_id" },
+      },
+      { $match: payload },
+      {
+        $lookup: {
+          from: "target_areas",
+          localField: "_id",
+          foreignField: "service",
+          as: "targetAreas",
+        },
+      },
+      {
+        $lookup: {
+          from: "sub_areas",
+          localField: "targetAreas._id",
+          foreignField: "targetArea",
+          as: "subAreas",
+        },
+      },
+      {
+        $lookup: {
+          from: "components",
+          localField: "subAreas._id",
+          foreignField: "subArea",
+          as: "components",
+        },
+      },
+      {
+        $addFields: {
+          targetAreaCount: { $size: "$targetAreas" },
+          subAreaCount: { $size: "$subAreas" },
+          componentCount: { $size: "$components" },
+        },
+      },
+      { $project: { targetAreas: 0, subAreas: 0, components: 0 } },
+      { $sort: { name: 1 } },
+    ]);
+    return c.json(services);
   }
 
-  @Get("/:publicId")
-  async getByPublicId(c: Context) {
-    try {
-      return c.json(
-        await servicesService.getByPublicId(c.req.param("publicId")!),
-      );
-    } catch (cause) {
-      return error(c, cause);
-    }
+  @Get("/:id")
+  async getById(c: Context) {
+    const id = c.req.param("id");
+    const match = Types.ObjectId.isValid(id)
+      ? { _id: new Types.ObjectId(id) }
+      : { publicId: id };
+    const service = await this.serviceModel.aggregate([
+      {
+        $addFields: {
+          id: { $toString: "$_id" },
+        },
+      },
+      {
+        $match: match,
+      },
+      {
+        $lookup: {
+          from: "target_areas",
+          let: { serviceId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$service", "$$serviceId"] },
+              },
+            },
+            { $sort: { order: 1 } },
+            {
+              $lookup: {
+                from: "sub_areas",
+                let: { targetAreaId: "$_id" },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: { $eq: ["$targetArea", "$$targetAreaId"] },
+                    },
+                  },
+                  { $sort: { order: 1 } },
+                  {
+                    $lookup: {
+                      from: "components",
+                      let: { subAreaId: "$_id" },
+                      pipeline: [
+                        {
+                          $match: {
+                            $expr: { $eq: ["$subArea", "$$subAreaId"] },
+                          },
+                        },
+                        { $sort: { order: 1 } },
+                        {
+                          $lookup: {
+                            from: "goals",
+                            let: { componentId: "$_id" },
+                            pipeline: [
+                              {
+                                $match: {
+                                  $expr: {
+                                    $eq: ["$component", "$$componentId"],
+                                  },
+                                },
+                              },
+                              { $count: "count" },
+                            ],
+                            as: "goalSummary",
+                          },
+                        },
+                        {
+                          $addFields: {
+                            goalCount: {
+                              $ifNull: [
+                                { $arrayElemAt: ["$goalSummary.count", 0] },
+                                0,
+                              ],
+                            },
+                          },
+                        },
+                        { $project: { goalSummary: 0 } },
+                      ],
+                      as: "components",
+                    },
+                  },
+                ],
+                as: "subAreas",
+              },
+            },
+          ],
+          as: "targetAreas",
+        },
+      },
+    ]);
+
+    return c.json(service[0] ?? null);
   }
 
-  @Post("")
+  @Post()
   async create(c: Context) {
-    try {
-      return c.json(await servicesService.create(await c.req.json()), 201);
-    } catch (cause) {
-      return error(c, cause);
-    }
+    const body = await c.req.json();
+    const service = await this.serviceModel.create(body);
+    return c.json(service);
   }
 
-  @Patch("/:publicId")
+  @Patch("/:id")
   async update(c: Context) {
-    try {
-      return c.json(
-        await servicesService.update(
-          c.req.param("publicId")!,
-          await c.req.json(),
-        ),
-      );
-    } catch (cause) {
-      return error(c, cause);
-    }
+    const id = c.req.param("id");
+    const body = await c.req.json();
+    const filter = Types.ObjectId.isValid(id) ? { _id: id } : { publicId: id };
+    const service = await this.serviceModel.findOneAndUpdate(filter, body, {
+      new: true,
+    });
+    return c.json(service);
   }
 
-  @Delete("/:publicId")
-  async delete(c: Context) {
-    try {
-      return c.json(await servicesService.delete(c.req.param("publicId")!));
-    } catch (cause) {
-      return error(c, cause);
-    }
+  @Delete("/:id")
+  async remove(c: Context) {
+    const id = c.req.param("id");
+    const filter = Types.ObjectId.isValid(id) ? { _id: id } : { publicId: id };
+    await this.serviceModel.findOneAndDelete(filter);
+    return c.json({ success: true, id });
   }
 }

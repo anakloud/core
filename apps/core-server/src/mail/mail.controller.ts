@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { Controller, Post } from "../lib/utils.ts";
+import { Controller, Post } from "../utils.ts";
 import { MailInputError, mailService } from "./mail.service.ts";
 
 const MAX_REQUEST_BYTES = 64 * 1024;

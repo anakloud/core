@@ -1,9 +1,12 @@
 import "reflect-metadata";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { registerController } from "./lib/utils.ts";
-import { AreasController } from "./areas/areas.controller.ts";
-import { DomainsController } from "./domains/domains.controller.ts";
+import { registerController } from "./utils.ts";
+import { TargetAreasController } from "./target-areas/target-areas.controller.ts";
+import { SubAreasController } from "./sub-areas/sub-areas.controller.ts";
+import { ComponentsController } from "./components/components.controller.ts";
+import { GoalsController } from "./goals/goals.controller.ts";
+import { ActivitiesController } from "./activities/activities.controller.ts";
 import { MailController } from "./mail/mail.controller.ts";
 import { ServicesController } from "./services/services.controller.ts";
 import { StorageController } from "./storage/storage.controller.ts";
@@ -36,8 +39,11 @@ const startServer = async () => {
   registerController(app, MailController);
   registerController(app, StorageController);
   registerController(app, ServicesController);
-  registerController(app, DomainsController);
-  registerController(app, AreasController);
+  registerController(app, TargetAreasController);
+  registerController(app, SubAreasController);
+  registerController(app, ComponentsController);
+  registerController(app, GoalsController);
+  registerController(app, ActivitiesController);
   registerController(app, CentersController);
 
   serve(

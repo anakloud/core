@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import type { Context, Hono } from "hono";
-import { apiKeyMiddleware } from "../middlewares/api-key.middleware.ts";
+import { apiKeyMiddleware } from "./middlewares/api-key.middleware.ts";
 
 const ROUTES_KEY = Symbol("routes");
 const PREFIX_KEY = Symbol("prefix");
@@ -22,9 +22,15 @@ export function Controller(prefix: string = "") {
 
 function createMethodDecorator(method: RouteMetadata["method"]) {
   return (path: string = "") => {
-    return (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
-      const routes: RouteMetadata[] = Reflect.getMetadata(ROUTES_KEY, target.constructor) || [];
-      const isPublic = Reflect.getMetadata(PUBLIC_KEY, target, propertyKey) || false;
+    return (
+      target: any,
+      propertyKey: string | symbol,
+      descriptor: PropertyDescriptor,
+    ) => {
+      const routes: RouteMetadata[] =
+        Reflect.getMetadata(ROUTES_KEY, target.constructor) || [];
+      const isPublic =
+        Reflect.getMetadata(PUBLIC_KEY, target, propertyKey) || false;
       routes.push({ method, path, handlerName: propertyKey, isPublic });
       Reflect.defineMetadata(ROUTES_KEY, routes, target.constructor);
       return descriptor;
@@ -39,7 +45,11 @@ export const Delete = createMethodDecorator("delete");
 export const Patch = createMethodDecorator("patch");
 
 export function Public() {
-  return (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
+  return (
+    target: any,
+    propertyKey: string | symbol,
+    descriptor: PropertyDescriptor,
+  ) => {
     Reflect.defineMetadata(PUBLIC_KEY, true, target, propertyKey);
     return descriptor;
   };
@@ -48,7 +58,8 @@ export function Public() {
 export function registerController(app: Hono, controllerClass: any) {
   const instance = new controllerClass();
   const prefix: string = Reflect.getMetadata(PREFIX_KEY, controllerClass) || "";
-  const routes: RouteMetadata[] = Reflect.getMetadata(ROUTES_KEY, controllerClass) || [];
+  const routes: RouteMetadata[] =
+    Reflect.getMetadata(ROUTES_KEY, controllerClass) || [];
 
   routes.forEach((route) => {
     const fullPath = `${prefix}${route.path}`;
