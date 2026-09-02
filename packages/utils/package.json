@@ -1,0 +1,28 @@
+{
+  "name": "@anakloud/utils",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./controller": "./src/controller.ts",
+    "./database": "./src/database.ts",
+    "./origins": "./src/origins.ts"
+  },
+  "scripts": {
+    "test": "bun test src",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "hono": "^4.12.0",
+    "mongoose": ">=8 <10",
+    "reflect-metadata": "^0.2.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "hono": "^4.12.23",
+    "mongoose": "^9.9.3",
+    "reflect-metadata": "^0.2.2",
+    "typescript": "^5.9.2"
+  }
+}

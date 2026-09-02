@@ -8,16 +8,19 @@ COPY --from=oven/bun:1.1-slim /usr/local/bin/bun /usr/local/bin/bun
 # Copy monorepo configurations and locks
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/core-server/package.json ./apps/core-server/
+COPY packages/utils/package.json ./packages/utils/
 
 # Install pnpm pinned to the project workspace version
 RUN npm install -g pnpm@10.17.1
 
 # Install all development and production dependencies
-RUN pnpm install --filter core-server --frozen-lockfile
+RUN pnpm install --filter core-server... --frozen-lockfile
 
 # Copy the server source code and tsconfig
 COPY apps/core-server/src ./apps/core-server/src
 COPY apps/core-server/tsconfig.json ./apps/core-server/
+COPY packages/utils/src ./packages/utils/src
+COPY packages/utils/tsconfig.json ./packages/utils/
 
 # Bundle modules into a single index.js file
 WORKDIR /app/apps/core-server
