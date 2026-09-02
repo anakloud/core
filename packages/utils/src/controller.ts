@@ -14,7 +14,7 @@ interface RouteMetadata {
   isPublic: boolean;
 }
 
-interface RegisterControllerOptions {
+export interface RegisterControllerOptions {
   middlewares?: MiddlewareHandler[];
 }
 
@@ -213,9 +213,9 @@ export function registerController(
 export function registerControllers(
   app: Hono,
   controllerClasses: any[],
-  middlewares: MiddlewareHandler[] = [],
+  options: RegisterControllerOptions = {},
 ) {
   controllerClasses.forEach((controllerClass) => {
-    registerController(app, controllerClass, { middlewares });
+    registerController(app, controllerClass, options);
   });
 }

@@ -83,9 +83,9 @@ describe("controller authentication", () => {
 
   test("applies authentication to every route except Public routes", async () => {
     const app = new Hono();
-    registerControllers(app, [TestController], [
-      authMiddleware(createAuth(null)),
-    ]);
+    registerControllers(app, [TestController], {
+      middlewares: [authMiddleware(createAuth(null))],
+    });
 
     expect((await app.request("/private")).status).toBe(401);
     expect((await app.request("/public")).status).toBe(200);
