@@ -31,6 +31,6 @@ export function createOpenApiDocument(controllerClasses: any[]) {
 
 export function registerController(app: Hono, controllerClass: any) {
   return register(app, controllerClass, {
-    middleware: apiKeyMiddleware(),
+    middlewares: [apiKeyMiddleware()],
   });
 }

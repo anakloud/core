@@ -15,7 +15,7 @@ interface RouteMetadata {
 }
 
 interface RegisterControllerOptions {
-  middleware?: MiddlewareHandler;
+  middlewares?: MiddlewareHandler[];
 }
 
 interface OpenApiDocumentOptions {
@@ -202,10 +202,20 @@ export function registerController(
         route.handlerName,
       ) || [];
     const middlewares = [
-      ...(!route.isPublic && options.middleware ? [options.middleware] : []),
+      ...(!route.isPublic ? (options.middlewares ?? []) : []),
       ...routeMiddlewares,
     ];
 
     (app[route.method] as any)(fullPath, ...middlewares, handler);
+  });
+}
+
+export function registerControllers(
+  app: Hono,
+  controllerClasses: any[],
+  middlewares: MiddlewareHandler[] = [],
+) {
+  controllerClasses.forEach((controllerClass) => {
+    registerController(app, controllerClass, { middlewares });
   });
 }
