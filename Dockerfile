@@ -2,6 +2,9 @@
 FROM node:20-slim AS builder
 WORKDIR /app
 
+# Install git (required by pnpm for some dependency resolutions)
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+
 # Copy the bun binary from official bun image
 COPY --from=oven/bun:1.1-slim /usr/local/bin/bun /usr/local/bin/bun
 
