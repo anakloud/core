@@ -8,7 +8,6 @@ import { SubAreasController } from "./sub-areas/sub-areas.controller.ts";
 import { ComponentsController } from "./components/components.controller.ts";
 import { GoalsController } from "./goals/goals.controller.ts";
 import { ActivitiesController } from "./activities/activities.controller.ts";
-import { MailController } from "./mail/mail.controller.ts";
 import { ServiceController } from "./services/service.controller.ts";
 import { StorageController } from "./storage/storage.controller.ts";
 import { CentersController } from "./centers/centers.controller.ts";
@@ -17,7 +16,6 @@ import { serve } from "@hono/node-server";
 
 const app = new Hono();
 const controllers = [
-  MailController,
   StorageController,
   ServiceController,
   TargetAreasController,

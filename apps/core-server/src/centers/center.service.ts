@@ -1,7 +1,7 @@
 import type { ICenter } from "./center.model.ts";
 import { Model, Types } from "mongoose";
 import CenterModel from "./center.model.ts";
-import { getNextSequenceId } from "../shared/sequence.ts";
+import { getNextSequenceId } from "@anakloud/utils";
 
 export class CenterService {
   private centerModel: Model<ICenter> = CenterModel;

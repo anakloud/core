@@ -1,10 +1,11 @@
 import type { MiddlewareHandler } from "hono";
+import { setRequestUser, setRequestSession } from "./request-context.ts";
 
 export interface Auth {
   api: {
     getSession(options: { headers: Headers }): Promise<{
-      user: any;
-      session: any;
+      user: Record<string, unknown>;
+      session: Record<string, unknown>;
     } | null>;
   };
 }
@@ -20,8 +21,13 @@ export function authMiddleware(auth: Auth): MiddlewareHandler {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session) return c.json({ error: "Unauthorized" }, 401);
 
+    // Set in Hono context
     c.set("user", session.user);
     c.set("session", session.session);
+
+    // Set in request context
+    setRequestUser(session.user);
+    setRequestSession(session.session);
 
     await next();
   };

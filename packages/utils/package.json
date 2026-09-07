@@ -1,16 +1,10 @@
 {
   "name": "@anakloud/utils",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./server": "./src/server.ts",
-    "./api-client": "./src/api-client.ts",
-    "./auth": "./src/auth.ts",
-    "./controller": "./src/controller.ts",
-    "./database": "./src/database.ts",
-    "./media": "./src/media.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
     "test": "bun test src",

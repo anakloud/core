@@ -55,6 +55,8 @@ describe("createMedia", () => {
     );
 
     expect(response.status).toBe(302);
-    expect(response.headers.get("location")).toBe("https://storage.test/signed");
+    expect(response.headers.get("location")).toBe(
+      "https://storage.test/signed",
+    );
   });
 });
